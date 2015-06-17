@@ -1,5 +1,11 @@
 package com.whyun.util;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.RandomAccessFile;
+import java.io.StringWriter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 
 import android.util.Log;
@@ -26,6 +32,7 @@ public class MyLog {
 	
 	private String tag;
 	private static final String androidTag = "handle";
+    private static final String ERROR_LOG = "/sdcard/error.log";
 	
 	protected MyLog() {
 		
@@ -46,6 +53,43 @@ public class MyLog {
 			return getLogger("");
 		}
 	}
+
+    private void writeErrorLog(String msg,Throwable e) {
+        RandomAccessFile in = null;
+        PrintWriter printWriter = null;
+        try{
+            in = new RandomAccessFile(ERROR_LOG, "rw");
+            //append to file end
+            long length = in.length();
+            in.seek(length);
+            StringWriter writer = new StringWriter();
+            printWriter = new PrintWriter( writer );
+            e.printStackTrace( printWriter );
+            printWriter.flush();
+
+            String stackTrace = writer.toString();
+
+            Log.println(ERROR, androidTag, stackTrace);
+            SimpleDateFormat dateformat1=new SimpleDateFormat("yyyy-MM-dd HH:mm:ss E");
+            String d=dateformat1.format(new Date());
+            in.write(('['+d+']'+msg).getBytes());
+            in.write(stackTrace.getBytes());
+
+        }catch(Exception ex){
+            ex.printStackTrace();
+        } finally {
+            if (in != null) {
+                try {
+                    in.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+                }
+            }
+            if (printWriter != null) {
+                printWriter.close();
+            }
+        }
+    }
 	
 	public void showLog(int level,String msg,Throwable e) {
 		if (level < IConst.TOP_LEVEL_LOG) {
@@ -55,6 +99,7 @@ public class MyLog {
 				+ "["+tag + "]" + msg;
 			Log.println(level, androidTag, msgStr);
 			if (e != null) {
+                writeErrorLog(msg,e);
 				e.printStackTrace();
 			}
 		}
@@ -77,7 +122,7 @@ public class MyLog {
 	}
 	
 	public void debug(String msg) {
-		info(msg,null);
+		debug(msg,null);
 	}
 	
 	public void warn(String msg,Throwable e) {
@@ -85,7 +130,7 @@ public class MyLog {
 	}
 	
 	public void warn(String msg) {
-		info(msg,null);
+		warn(msg,null);
 	}
 	
 	public void error(String msg,Throwable e) {
@@ -93,6 +138,6 @@ public class MyLog {
 	}
 	
 	public void error(String msg) {
-		info(msg,null);
+		error(msg,null);
 	}
 }
